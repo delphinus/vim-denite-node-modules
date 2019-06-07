@@ -1,9 +1,9 @@
 from .base import Base
 from denite.util import error
+from json import loads
+from operator import itemgetter
 from os import R_OK, access
-from os.path import dirname, ismount, join
-from json import JSONDecodeError, loads
-from functools import reduce
+from pathlib import Path
 
 
 class Source(Base):
@@ -14,40 +14,46 @@ class Source(Base):
         self.kind = "directory"
 
     def gather_candidates(self, context):
-        cwd = self.vim.call("getcwd")
+        cwd = Path(self.vim.call("getcwd"))
         package_json = self._find_package_json(cwd)
         if not package_json:
             error(self.vim, "package.json not found")
             return []
 
-        items = self._load_items(package_json)
-        if not items:
+        try:
+            items = self._load_items(package_json)
+        except:
+            error(self.vim, f"Error occurred in reading {package_json}")
             return []
 
-        root = dirname(package_json)
+        node_modules = package_json.parent / "node_modules"
         candidates = []
-        for item in items:
-            path = join(root, "node_modules", item["name"], "package.json")
-            if not access(path, R_OK):
-                continue
-            with open(path) as fp:
+
+        for package_dir in node_modules.iterdir():
+            child_json = package_dir / "package.json"
+            if access(child_json, R_OK):
                 try:
-                    name = item["name"]
-                    obj = loads(fp.read())
-                    version = obj.get("version", "unknown")
-                    dev_flag = " [D]" if item["dev"] else ""
-                    candidates.append(
-                        {
-                            "word": name,
-                            "abbr": f"{name} ({version}){dev_flag}",
-                            "action__path": dirname(path),
-                        }
-                    )
-                except JSONDecodeError:
-                    error(self.vim, f"Decode error for {path}")
+                    with child_json.open() as fp:
+                        obj = loads(fp.read())
+                        name = obj.get("name")
+                        flag = items.get(name, "[O]")
+                        version = obj.get("version", "unknown")
+                        candidates.append(
+                            {
+                                "word": name,
+                                "abbr": f"{name} ({version}) {flag}",
+                                "action__path": str(package_dir),
+                                "source__is_prod": flag == "",
+                                "source__is_dev": flag == "D",
+                            }
+                        )
+                except:
+                    error(self.vim, f"Error occurred in reading {child_json}")
                     return []
 
-        return candidates
+        return sorted(
+            candidates, key=itemgetter("source__is_prod", "source__is_dev", "word")
+        )
 
     def highlight(self):
         self.vim.command("highlight default link deniteNpmName Title")
@@ -65,27 +71,18 @@ class Source(Base):
             r"syntax match deniteNpmVersion /(.\{-})/ contained containedin=deniteNpm"
         )
         self.vim.command(
-            r"syntax match deniteNpmDev /\[D\]/ contained containedin=deniteNpm"
+            r"syntax match deniteNpmDev /\[[DO]\]/ contained containedin=deniteNpm"
         )
 
     def _load_items(self, path):
         with open(path) as fp:
-            try:
-                obj = loads(fp.read())
-                deps = obj.get("dependencies")
-                dev_deps = obj.get("devDependencies")
-                items = []
-                if deps:
-                    items += [{"name": x, "dev": False} for x in deps]
-                if dev_deps:
-                    items += [{"name": x, "dev": True} for x in dev_deps]
-                return items
-            except JSONDecodeError:
-                error(self.vim, f"Decode error for {path}")
-                return []
+            obj = loads(fp.read())
+            deps = {x: "" for x in obj.get("dependencies", {})}
+            dev_deps = {x: "[D]" for x in obj.get("devDependencies", {})}
+            return {**deps, **dev_deps}
 
     def _find_package_json(self, path):
-        if path == "/" or ismount(path):
+        if path == Path("/") or path.is_mount():
             return None
-        p = join(path, "package.json")
-        return p if access(p, R_OK) else self._find_package_json(dirname(path))
+        p = path / "package.json"
+        return p if access(p, R_OK) else self._find_package_json(path.parent)
