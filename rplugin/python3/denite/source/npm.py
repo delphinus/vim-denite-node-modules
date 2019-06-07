@@ -1,7 +1,6 @@
 from .base import Base
 from denite.util import error
 from json import loads
-from operator import itemgetter
 from os import R_OK, access
 from pathlib import Path
 
@@ -41,7 +40,12 @@ class Source(Base):
                 return []
 
         return sorted(
-            candidates, key=itemgetter("source__is_prod", "source__is_dev", "word")
+            candidates,
+            key=lambda x: (
+                not x["source__is_prod"],
+                not x["source__is_dev"],
+                x["word"],
+            ),
         )
 
     def highlight(self):
