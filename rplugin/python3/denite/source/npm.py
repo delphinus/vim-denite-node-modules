@@ -10,7 +10,7 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
 
-        self.name = "npm"
+        self.name = "packages"
         self.kind = "directory"
 
     def gather_candidates(self, context):
