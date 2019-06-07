@@ -81,7 +81,7 @@ class Source(Base):
                         "abbr": f"{name} ({version}) {flag}",
                         "action__path": str(package_dir),
                         "source__is_prod": flag == "",
-                        "source__is_dev": flag == "D",
+                        "source__is_dev": flag == "[D]",
                     }
                 )
 
