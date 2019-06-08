@@ -64,7 +64,7 @@ class Source(Base):
             r"syntax match deniteNpmVersion /(.\{-})/ contained containedin=deniteNpm"
         )
         self.vim.command(
-            r"syntax match deniteNpmDev /\[[DO]\]/ contained containedin=deniteNpm"
+            r"syntax match deniteNpmDev /\v\[(dev|peer|optional|others)\]/ contained containedin=deniteNpm"
         )
 
     def _add_candidate(self, candidates, items, package_dir):
@@ -73,7 +73,7 @@ class Source(Base):
             with package_json.open() as fp:
                 obj = loads(fp.read())
                 name = obj.get("name")
-                flag = items.get(name, "[O]")
+                flag = items.get(name, "[others]")
                 version = obj.get("version", "unknown")
                 candidates.append(
                     {
@@ -81,7 +81,9 @@ class Source(Base):
                         "abbr": f"{name} ({version}) {flag}",
                         "action__path": str(package_dir),
                         "source__is_prod": flag == "",
-                        "source__is_dev": flag == "[D]",
+                        "source__is_dev": flag == "[dev]",
+                        "source__is_peer": flag == "[peer]",
+                        "source__is_optional": flag == "[optional]",
                     }
                 )
 
@@ -89,8 +91,12 @@ class Source(Base):
         with open(path) as fp:
             obj = loads(fp.read())
             deps = {x: "" for x in obj.get("dependencies", {})}
-            dev_deps = {x: "[D]" for x in obj.get("devDependencies", {})}
-            return {**deps, **dev_deps}
+            dev_deps = {x: "[dev]" for x in obj.get("devDependencies", {})}
+            peer_deps = {x: "[peer]" for x in obj.get("peerDependencies", {})}
+            optional_deps = {
+                x: "[optional]" for x in obj.get("optionalDependencies", {})
+            }
+            return {**deps, **dev_deps, **peer_deps, **optional_deps}
 
     def _find_package_json(self, path):
         if path == Path("/") or path.is_mount():
