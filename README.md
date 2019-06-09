@@ -1,4 +1,4 @@
-# vim-denite-npm-packages
+# vim-denite-node-modules
 
 Denite source for node packages
 
@@ -21,11 +21,11 @@ This plugin depends on the same components as Denite.
 ## Usage
 
 ```vim
-:Denite packages
+:Denite node_modules
 ```
 
 ## See also
 
 * [neoclide/npm.nvim](https://github.com/neoclide/npm.nvim)
-  - vim-denite-npm-packages owes a lot idea from this. It has more features to
+  - vim-denite-node-modules owes a lot idea from this. It has more features to
     manage `npm` tasks within (Neo)Vim.
