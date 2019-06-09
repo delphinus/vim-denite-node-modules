@@ -2,7 +2,7 @@
 
 Denite source for node packages
 
-<img width="649" alt="スクリーンショット 2019-06-08 18 35 32" src="https://user-images.githubusercontent.com/1239245/59145275-56b60e80-8a1c-11e9-8718-64fe141c2002.png">
+<img width="647" alt="スクリーンショット 0001-06-09 14 52 19" src="https://user-images.githubusercontent.com/1239245/59155528-5c682e80-8ac6-11e9-8403-eea73baaab11.png">
 
 ## What's this?
 
